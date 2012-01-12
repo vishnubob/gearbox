@@ -5,8 +5,9 @@
 import sys
 import os
 import tempfile
+import subprocess
 
-SSH_WRAP = '#!/bin/sh\nssh -i %s -o "StrictHostKeyChecking no" \$@'
+SSH_WRAP = '#!/bin/sh\nssh -T -i %s -o "StrictHostKeyChecking no" $@\nrm %s'
 GIT_CMD = "/usr/bin/git"
 
 class SSH_GIT_Wrap(object):
@@ -23,29 +24,25 @@ class SSH_GIT_Wrap(object):
             self.do_wrap = False
             return
 
-        key_fn = sys.argv[i_idx + 1]
+        key_fn = self.argv[i_idx + 1]
+        del self.argv[i_idx + 1]
+        del self.argv[i_idx]
         assert os.path.exists(key_fn)
-        del argv[i_idx]
-        del argv[i_idx + 1]
-        self.argv = argv
 
         (f, fn) = tempfile.mkstemp()
         self.ssh_wrap_fn = fn
-        f.write(SSH_WRAP % key_fn)
+        f = os.fdopen(f, 'w')
+        f.write(SSH_WRAP % (key_fn, self.ssh_wrap_fn))
         f.close()
         os.chmod(fn, 0700)
         os.environ["GIT_SSH"] = self.ssh_wrap_fn
 
     def do_git(self):
-        try:
-            retcode = os.system(str.join(' ', self.argv))
-        finally:
-            if self.ssh_wrap_fn:
-                os.unlink(self.ssh_wrap_fn)
-        return retcode
+        self.argv.insert(1, "git")
+        print self.argv
+        os.execl(*self.argv)
 
 if __name__ == "__main__":
     git_wrapper = SSH_GIT_Wrap()
     git_wrapper.do_wrap()
-    retcode = git_wrapper.do_git()
-    sys.exit(retcode)
+    git_wrapper.do_git()
