@@ -1,0 +1,42 @@
+Welcome to the gearbox, a collection of helpful tools written by Giles Hall.
+
+--------------------------------------------------------------------------------
+- Journal
+--------------------------------------------------------------------------------
+
+Journal is a very simple time keeper written in python.  Install the journal
+script somewhere in your path, and get started like this:
+
+$ journal start eating dinner
+Thu Jan 12 19:52:14 2012]: start eating dinner
+$ journal start taking shower
+Thu Jan 12 20:15:27 2012]: stop eating dinner (0.40 hrs)
+Thu Jan 12 20:15:27 2012]: start taking shower
+$ journal start brushing teeth
+Thu Jan 12 20:20:39 2012]: stop taking shower (0.08 hrs)
+Thu Jan 12 20:20:39 2012]: start brushing teeth
+$ journal stop
+Thu Jan 12 20:22:46 2012]: stop brushing teeth (0.03 hrs)
+$ journal show
+Thu Jan 12 19:52:14 2012]: journal start
+Thu Jan 12 19:52:14 2012]: start eating dinner
+Thu Jan 12 20:15:27 2012]: stop eating dinner (0.40 hrs)
+Thu Jan 12 20:15:27 2012]: start taking shower
+Thu Jan 12 20:20:39 2012]: stop taking shower (0.08 hrs)
+Thu Jan 12 20:20:39 2012]: start brushing teeth
+Thu Jan 12 20:22:46 2012]: stop brushing teeth (0.03 hrs)
+
+--------------------------------------------------------------------------------
+- git
+--------------------------------------------------------------------------------
+
+git is a python wrapper for git that allows you to specify which SSH key you
+would like to use (using the `-i' argument) to perform the git operation:
+
+$ git -i ~/.ssh/alt_id pull
+
+--------------------------------------------------------------------------------
+- Package: gbox
+- Author: Giles Hall
+- Copyright: 2012
+--------------------------------------------------------------------------------

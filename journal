@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+import os
+import sys
+import time
+import pickle
+import shutil
+import datetime
+
+class JournalEvent(object):
+    start_journal= "__new__"
+    stop_event= "__stop__"
+
+    def __init__(self, name, event=None, ts=None):
+        self.name = name
+        self.event = event
+        if ts == None:
+            self.ts = time.time()
+
+    @property
+    def datetime(self):
+        return datetime.datetime.fromtimestamp(self.ts)
+
+    def __sort__(self, other):
+        return cmp(self.ts, other.ts)
+
+    def is_stop_event(self):
+        return self.name == self.stop_event
+
+    def is_start_journal_event(self):
+        return self.name == self.start_journal
+
+    def is_start_event(self):
+        return not (self.is_stop_event() or self.is_start_journal_event())
+
+    def format(self):
+        ts = time.strftime("%c", time.localtime(self.ts))
+        if self.is_stop_event():
+            delta = self.datetime - self.event.datetime
+            hrs = delta.total_seconds() / (60 * 60)
+            msg = "%s]: stop %s (%.2f hrs)" % (ts, self.event.name, hrs)
+        elif self.is_start_journal_event():
+            msg = "%s]: journal start" % ts
+        elif self.is_start_event():
+            msg = "%s]: start %s" % (ts, self.name)
+        else:
+            msg = "%s]: Corrupt Event?!" % ts
+        return msg
+
+class Journal(list):
+    def __init__(self, *args, **kw):
+        super(Journal, self).__init__(*args)
+        if len(self) == 0:
+            jev = JournalEvent(JournalEvent.start_journal)
+            self.append(jev)
+
+    def start_event(self, name):
+        jev = JournalEvent(name)
+        self.append(jev)
+        return jev
+
+    def end_event(self):
+        last_ev = self[-1]
+        if not last_ev.is_start_event():
+            raise ValueError, "There is no current start event which this event would end!"
+        jev = JournalEvent(JournalEvent.stop_event, event=last_ev)
+        self.append(jev)
+        return jev
+
+class TimeKeep(object):
+    def __init__(self, new=False, **opts):
+        default_dir = os.environ.get("HOME", ".")
+        self.journal_fn = "%s/.timekeep.dat" %  default_dir
+        self.journal = Journal()
+        if not new:
+            self.load_journal()
+
+    def load_journal(self):
+        if not os.path.exists(self.journal_fn):
+            return
+        f = open(self.journal_fn)
+        self.journal = pickle.load(f)
+
+    def save_journal(self):
+        try:
+            tmp_fn = ".tmpjournal_%s" % os.getpid()
+            f = open(tmp_fn, 'w')
+            pickle.dump(self.journal, f)
+            f.close()
+            shutil.copyfile(tmp_fn, self.journal_fn)
+        finally:
+            if os.path.exists(tmp_fn):
+                os.unlink(tmp_fn)
+
+    def on(self, name):
+        last_ev = self.journal[-1]
+        if last_ev.is_start_event():
+            self.off()
+        ev = self.journal.start_event(name)
+        self.save_journal()
+        print ev.format()
+
+    def off(self):
+        ev = self.journal.end_event()
+        self.save_journal()
+        print ev.format()
+
+    def show(self):
+        for event in self.journal:
+            print event.format()
+
+if __name__ == "__main__":
+    cmd = sys.argv[1]
+    rem = str.join(' ', sys.argv[2:])
+    if cmd in ("start", "on", "begin"):
+        tk = TimeKeep()
+        tk.on(rem)
+    elif cmd in ("stop", "off", "end"):
+        tk = TimeKeep()
+        tk.off()
+    elif cmd in ("show"):
+        tk = TimeKeep()
+        tk.show()
+    elif cmd in ("reset"):
+        tk = TimeKeep(new=True)
+        tk.save_journal()
+    else:
+        print "zuh?"
+

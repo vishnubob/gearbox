@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+# Author: Giles Hall
+# GIT wrapper that lets you specify your SSH key
+
+import sys
+import os
+import tempfile
+
+SSH_WRAP = '#!/bin/sh\nssh -i %s -o "StrictHostKeyChecking no" \$@'
+GIT_CMD = "/usr/bin/git"
+
+class SSH_GIT_Wrap(object):
+    def do_wrap(self):
+        i_idx = None
+        self.argv = sys.argv[:]
+        self.argv[0] = GIT_CMD
+        self.ssh_wrap_fn = None
+        for (idx, arg) in enumerate(self.argv):
+            if arg == "-i":
+                i_idx = idx
+                break
+        if i_idx == None:
+            self.do_wrap = False
+            return
+
+        key_fn = sys.argv[i_idx + 1]
+        assert os.path.exists(key_fn)
+        del argv[i_idx]
+        del argv[i_idx + 1]
+        self.argv = argv
+
+        (f, fn) = tempfile.mkstemp()
+        self.ssh_wrap_fn = fn
+        f.write(SSH_WRAP % key_fn)
+        f.close()
+        os.chmod(fn, 0700)
+        os.environ["GIT_SSH"] = self.ssh_wrap_fn
+
+    def do_git(self):
+        try:
+            retcode = os.system(str.join(' ', self.argv))
+        finally:
+            if self.ssh_wrap_fn:
+                os.unlink(self.ssh_wrap_fn)
+        return retcode
+
+if __name__ == "__main__":
+    git_wrapper = SSH_GIT_Wrap()
+    git_wrapper.do_wrap()
+    retcode = git_wrapper.do_git()
+    sys.exit(retcode)
