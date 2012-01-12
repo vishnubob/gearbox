@@ -39,7 +39,6 @@ class SSH_GIT_Wrap(object):
 
     def do_git(self):
         self.argv.insert(1, "git")
-        print self.argv
         os.execl(*self.argv)
 
 if __name__ == "__main__":
